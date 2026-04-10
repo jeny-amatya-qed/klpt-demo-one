@@ -786,8 +786,10 @@ if (state.savedDrafts.length === 0) {
       sessionsHtml += `
         <div class="recent-item session-card" data-load-draft="${idx}">
           <div class="session-card-content">
-            <p><strong>${escapeHtml(getCodeIcon(draft.summaryForm?.learnerCode || ""))} ${escapeHtml(draft.summaryForm?.learnerCode || draft.summaryForm?.sessionLabel || draft.sessionId)}</strong></p>
-            <small>${escapeHtml(formatDateTime(draft.timestamp))}</small>
+            <div class="session-card-title-row">
+              <p><strong>${escapeHtml(getCodeIcon(draft.summaryForm?.learnerCode || ""))} ${escapeHtml(draft.summaryForm?.learnerCode || draft.summaryForm?.sessionLabel || draft.sessionId)}</strong></p>
+              <small>${escapeHtml(formatDateTime(draft.timestamp))}</small>
+            </div>
           </div>
           <button 
             class="icon-delete" 
@@ -1819,13 +1821,19 @@ function renderStep5() {
       groupDrafts.forEach(draft => {
         const idx = state.savedDrafts.indexOf(draft);
         recentHtml += `
-          <div class="recent-item">
-            <p><strong>${escapeHtml(getCodeIcon(draft.summaryForm?.learnerCode || ""))} ${escapeHtml(draft.summaryForm?.learnerCode || draft.summaryForm?.sessionLabel || draft.sessionId)}</strong></p>
-            <small>${escapeHtml(formatDateTime(draft.timestamp))}</small>
-            <div class="action-row">
-              <button class="btn ghost" type="button" data-load-draft="${idx}">Load</button>
-              <button class="btn warn"  type="button" data-delete-draft="${idx}">Delete</button>
+          <div class="recent-item session-card" data-load-draft="${idx}">
+            <div class="session-card-content">
+              <div class="session-card-title-row">
+                <p><strong>${escapeHtml(getCodeIcon(draft.summaryForm?.learnerCode || ""))} ${escapeHtml(draft.summaryForm?.learnerCode || draft.summaryForm?.sessionLabel || draft.sessionId)}</strong></p>
+                <small>${escapeHtml(formatDateTime(draft.timestamp))}</small>
+              </div>
             </div>
+            <button class="icon-delete" type="button" data-delete-draft="${idx}"
+              title="Delete session"
+              aria-label="Delete ${escapeHtml(draft.summaryForm?.learnerCode || draft.sessionId)}"
+            >
+              ✕
+            </button>
           </div>`;
       });
       recentHtml += `</div>`;
