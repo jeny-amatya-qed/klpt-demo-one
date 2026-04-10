@@ -104,7 +104,9 @@ const state = {
   autoSaveEnabled: false,
   autoSaveTimer: null,
   // Educator names loaded from educators.json
-  educatorNames: []
+  educatorNames: [],
+  // Track which saved session is currently loaded (updates instead of duplicates)
+  loadedSessionIndex: null
 };
 
 const el = {
@@ -413,7 +415,7 @@ function renderMain() {
   if (state.view === "using-klpt") { renderUsingKLPT(); return; }
   if (state.view === "learning-domains-tools") { renderLearningDomainsTools(); return; }
   if (state.view === "foundations") { renderFoundations(); return; }
-  if (state.view === "observation-support") {renderObservationSupport(); return; }
+  if (state.view === "observation-support") { renderObservationSupport(); return; }
   if      (state.currentStep === 1) renderStep1();
   else if (state.currentStep === 2) renderStep2();
   else if (state.currentStep === 3) renderStep3();
@@ -687,9 +689,7 @@ function renderLearningDomainsTools() {
   `;
   
   document.getElementById("startObservationBtn")?.addEventListener("click", () => {
-    state.view = "home";
     showCodeSelectionModal();
-    render();
   });
 }
 
@@ -2125,6 +2125,8 @@ function deriveSelectedBehaviours() {
 }
 
 function hydrateFromDraft(draft) {
+  const draftIndex = state.savedDrafts.indexOf(draft);
+  state.loadedSessionIndex = draftIndex >= 0 ? draftIndex : null;
   state.sessionId             = draft.sessionId || createSessionId();
   state.observationStartedAt  = draft.observationStartedAt || draft.timestamp || new Date().toISOString();
   state.selectedDomainId      = draft.selectedDomainId || "";
@@ -2143,6 +2145,7 @@ function hydrateFromDraft(draft) {
 
 function resetCurrentSession() {
   state.sessionId             = createSessionId();
+  state.loadedSessionIndex    = null;
   state.observationStartedAt  = "";
   state.currentStep           = 1;
   state.selectedDomainId      = "";
@@ -2168,18 +2171,19 @@ function startNewObservation(code) {
     return;
   }
   resetCurrentSession();
+  state.loadedSessionIndex    = null;
   state.observationStartedAt  = new Date().toISOString();
   state.summaryForm.learnerCode = code;
   state.usedCodes.add(code);
 }
 
-async function showCodeSelectionModal() {
+function showCodeSelectionModal() {
   const availableCodes = getCodeOptions().filter(code => !state.usedCodes.has(code));
   const modal = document.getElementById("codeSelectionModal");
   const grid = document.getElementById("codeSelectionGrid");
   
   if (availableCodes.length === 0) {
-    await showAlert("No Codes Available", "All learner codes have been used. Please save/print your work or clear the session.");
+    showAlert("No Codes Available", "All learner codes have been used. Please save/print your work or clear the session.");
     return;
   }
   
@@ -2237,7 +2241,14 @@ function saveCurrentDraft() {
   }
   state.usedCodes.add(state.summaryForm.learnerCode);
   const payload = createDraftPayload();
-  state.savedDrafts = [payload, ...state.savedDrafts].slice(0, 20);
+  
+  // If we're editing an existing session, update it; otherwise create new
+  if (state.loadedSessionIndex !== null && state.loadedSessionIndex >= 0 && state.loadedSessionIndex < state.savedDrafts.length) {
+    state.savedDrafts[state.loadedSessionIndex] = payload;
+  } else {
+    // Create new session (prepend and limit to 20)
+    state.savedDrafts = [payload, ...state.savedDrafts].slice(0, 20);
+  }
   persistDrafts();
   renderSessionMeta(); // refresh meta bar
 }

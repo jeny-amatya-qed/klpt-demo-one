@@ -1304,7 +1304,16 @@ select {
   .form-row { grid-template-columns: 1fr; }
 }
 
-/* ── Modal & Code Selection ── */
+/* ── Code Selection Panel ── */
+.code-selection-panel {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.code-selection-panel h2 {
+  margin-bottom: var(--space-2);
+}
+
 .modal {
   position: fixed;
   top: 0;
@@ -1337,7 +1346,7 @@ select {
   border-radius: var(--radius);
   padding: var(--space-6);
   box-shadow: var(--shadow-hover);
-  max-width: 500px;
+  max-width: 650px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
@@ -1358,8 +1367,8 @@ select {
 
 .code-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
 
@@ -1409,11 +1418,14 @@ select {
   gap: var(--space-3);
 }
 
-@media (max-width: 480px) {
-  .modal-content {
-    padding: var(--space-4);
+@media (max-width: 768px) {
+  .code-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
   }
-  
+}
+
+@media (max-width: 480px) {
   .code-grid {
     grid-template-columns: repeat(3, 1fr);
   }
