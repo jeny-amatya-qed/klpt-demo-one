@@ -919,6 +919,28 @@ select:focus-visible {
   border: 1px solid #efc7cc;
 }
 
+.btn.small {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 0.84rem;
+}
+
+.session-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.session-panel-header h3 {
+  margin: 0;
+}
+
+.delete-all-sessions-btn {
+  white-space: nowrap;
+}
+
 /* ── Step 3 Summary Form ── */
 .field-grid {
   display: grid;
@@ -2005,8 +2027,8 @@ select {
 }
 
 .icon-delete {
-  border: none;
-  background: rgba(255,255,255,0.92);
+  border: 1px solid #f5c9ce;
+  background: #fff;
   color: #b22222;
   width: 34px;
   height: 34px;
@@ -2016,11 +2038,22 @@ select {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
+  transition: background 150ms ease, transform 150ms ease, color 150ms ease, opacity 150ms ease;
+  opacity: 1 !important;
+}
+
+.icon-delete svg {
+  width: 14px;
+  height: 14px;
+}
+
+.session-card .icon-delete {
+  opacity: 1 !important;
 }
 
 .icon-delete:hover {
-  background: rgba(188,85,96,0.12);
+  background: #fff1f3;
+  color: #991a2a;
   transform: scale(1.05);
 }
 

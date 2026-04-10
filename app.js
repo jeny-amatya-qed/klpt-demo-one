@@ -770,6 +770,9 @@ function renderObservationSupport() {
 
 // Group drafts by observer name
 const groups = groupDraftsByObserver(state.savedDrafts);
+const deleteAllSessionsButton = state.savedDrafts.length
+  ? `<button type="button" class="btn ghost small delete-all-sessions-btn">Delete all</button>`
+  : "";
 let sessionsHtml;
 
 if (state.savedDrafts.length === 0) {
@@ -792,12 +795,15 @@ if (state.savedDrafts.length === 0) {
             </div>
           </div>
           <button 
-            class="icon-delete" 
+            type="button"
+            class="icon-delete"
             data-delete-draft="${idx}"
             title="Delete session"
             aria-label="Delete ${escapeHtml(draft.summaryForm?.learnerCode || draft.sessionId)}"
           >
-            ✕
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M4.5 4.5l7 7m0-7l-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
           </button>
         </div>`;
     });
@@ -821,7 +827,10 @@ el.main.innerHTML = `
       </div>
     </div>    
 
-    <h3>Saved Sessions (${drafts.length})</h3>
+    <div class="session-panel-header">
+      <h3>Saved Sessions (${drafts.length})</h3>
+      ${deleteAllSessionsButton}
+    </div>
     <div class="session-list">
       ${sessionsHtml}
     </div>
@@ -881,6 +890,21 @@ let sessionsHtml;
     showCodeSelectionModal();
   });
 
+  Array.from(el.main.querySelectorAll(".delete-all-sessions-btn")).forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!state.savedDrafts.length) return;
+      const confirmed = await showConfirm(
+        "Delete all saved sessions",
+        "Delete all saved sessions? This cannot be undone."
+      );
+      if (!confirmed) return;
+      state.savedDrafts = [];
+      persistDrafts();
+      renderObservationSupport();
+    });
+  });
+
   // ▶ Load Draft
   Array.from(el.main.querySelectorAll("[data-load-draft]")).forEach(btn => {
     btn.addEventListener("click", () => {
@@ -897,7 +921,8 @@ let sessionsHtml;
 
   // 🗑 Delete Draft
   Array.from(el.main.querySelectorAll("[data-delete-draft]")).forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       const idx = Number(btn.dataset.deleteDraft);
       state.savedDrafts.splice(idx, 1);
       persistDrafts();
@@ -1811,6 +1836,9 @@ function renderReviewField(title, value) {
 function renderStep5() {
   const groups = groupDraftsByObserver(state.savedDrafts);
 
+  const deleteAllSessionsButton = state.savedDrafts.length
+    ? `<button type="button" class="btn ghost small delete-all-sessions-btn">Delete all</button>`
+    : "";
   let recentHtml;
   if (!state.savedDrafts.length) {
     recentHtml = '<p class="meta">No local drafts yet.</p>';
@@ -1832,7 +1860,9 @@ function renderStep5() {
               title="Delete session"
               aria-label="Delete ${escapeHtml(draft.summaryForm?.learnerCode || draft.sessionId)}"
             >
-              ✕
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path d="M4.5 4.5l7 7m0-7l-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
             </button>
           </div>`;
       });
@@ -1854,7 +1884,10 @@ function renderStep5() {
       </div>
 
       <article class="review-card" style="margin-top:12px;">
-        <h3>Saved sessions (${state.savedDrafts.length})</h3>
+        <div class="session-panel-header">
+          <h3>Saved sessions (${state.savedDrafts.length})</h3>
+          ${deleteAllSessionsButton}
+        </div>
         <div class="recent-list">${recentHtml}</div>
       </article>
     </section>
@@ -1869,6 +1902,29 @@ function renderStep5() {
     if (!confirmed) return;
     resetCurrentSession(); state.savedDrafts = []; persistDrafts();
     state.currentStep = 1; render(); focusMain();
+  });
+  Array.from(el.main.querySelectorAll(".delete-all-sessions-btn")).forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!state.savedDrafts.length) return;
+      const confirmed = await showConfirm(
+        "Delete all saved sessions",
+        "Delete all saved sessions? This cannot be undone."
+      );
+      if (!confirmed) return;
+      state.savedDrafts = [];
+      persistDrafts();
+      renderStep5();
+    });
+  });
+  Array.from(el.main.querySelectorAll("[data-delete-draft]")).forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = Number(btn.dataset.deleteDraft);
+      state.savedDrafts.splice(idx, 1);
+      persistDrafts();
+      renderStep5();
+    });
   });
   document.getElementById("printBtn")?.addEventListener("click", () => {
     // Print the review form data
