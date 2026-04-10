@@ -376,8 +376,7 @@ function renderSessionMeta() {
 /* ── Stepper ─────────────────────────────────────────────────────── */
 
 function renderStepper() {
-  if (state.view === "home" || state.view === "using-klpt" || state.view === "learning-domains-tools" || 
-      state.view === "foundations" || state.loading || state.loadError) {
+  if (state.view !== "flow" || state.loading || state.loadError) {
     el.stepper.classList.add("hidden");
     el.stepper.innerHTML = "";
     return;
@@ -809,11 +808,14 @@ el.main.innerHTML = `
     <h2>Observation Support Tool</h2>
     <p class="section-subtitle"></p>     
 
-    <div class="new-observation">
-      <div class="plus-circle" id="newObservationCircle">+</div>
-      <div>
+    <div class="new-observation" id="newObservationBtn">
+      <div class="new-observation-icon" id="newObservationCircle">
+        <img src="./images/start-new-observation.svg" alt="Start a new observation" />
+      </div>
+      <div class="new-observation-copy">
+        <p class="eyebrow">New observation</p>
         <h2>Start a new observation</h2>
-        <p>Tap + to begin.</p>
+        <p>Tap the icon to begin a fresh session and continue your observation workflow.</p>
       </div>
     </div>    
 
