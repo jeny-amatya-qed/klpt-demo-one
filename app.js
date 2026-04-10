@@ -778,17 +778,17 @@ if (state.savedDrafts.length === 0) {
 } else {
   sessionsHtml = "";
   for (const [observer, groupDrafts] of groups) {
-    sessionsHtml += `<div class="observer-group">
-      <div class="observer-group-label">${escapeHtml(observer)}</div>
-      <div class="observer-sessions">`;
+    sessionsHtml += `<div class="recent-group">
+      <div class="recent-group-label">${escapeHtml(observer)}</div>
+      <div class="recent-list">`;
     
     groupDrafts.forEach(draft => {
       const idx = state.savedDrafts.indexOf(draft);
       sessionsHtml += `
-        <div class="session-card" data-load-draft="${idx}">
+        <div class="recent-item session-card" data-load-draft="${idx}">
           <div class="session-card-content">
-            <strong>${escapeHtml(draft.summaryForm?.learnerCode || draft.sessionId)}</strong>
-            <small>${escapeHtml(new Date(draft.timestamp).toLocaleString())}</small>
+            <p><strong>${escapeHtml(getCodeIcon(draft.summaryForm?.learnerCode || ""))} ${escapeHtml(draft.summaryForm?.learnerCode || draft.summaryForm?.sessionLabel || draft.sessionId)}</strong></p>
+            <small>${escapeHtml(formatDateTime(draft.timestamp))}</small>
           </div>
           <button 
             class="icon-delete" 
@@ -800,7 +800,7 @@ if (state.savedDrafts.length === 0) {
           </button>
         </div>`;
     });
-    
+
     sessionsHtml += `</div></div>`;
   }
 }
