@@ -426,41 +426,46 @@ function renderMain() {
 
 function renderStickyActions() {
   if (state.loading || state.loadError || state.view === "home" || state.view === "using-klpt" || 
-      state.view === "learning-domains-tools" || state.view === "foundations") {
+      state.view === "learning-domains-tools" || state.view === "foundations" || state.view === "observation-support") {
     el.sticky.innerHTML = ""; return;
   }
-  const stepTitle = STEP_LABELS[state.currentStep - 1];
-  const totalSteps = STEP_LABELS.length;
-  const leftText  = `${state.currentStep}/${totalSteps}  |  ${stepTitle}`;
   const canGoBack = state.currentStep > 1;
-  const isLast    = state.currentStep === totalSteps;
 
   el.sticky.innerHTML = `
     <div class="sticky-inner">
-      <div class="sticky-left">
-        <span class="badge">${escapeHtml(leftText)}</span>
-      </div>
+      <div class="sticky-left"></div>
       <div class="sticky-right">
-        <button class="btn ghost" type="button" id="saveNowBtn">Save Draft</button>
-        <label class="autosave-toggle" for="autoSaveToggle">
+        <label class="autosave-toggle" title="Auto-save your progress every 10 seconds">
           <input id="autoSaveToggle" type="checkbox" ${state.autoSaveEnabled ? "checked" : ""} />
-          Auto Save
+          <span>Auto-save</span>
         </label>
-        ${canGoBack ? '<button class="btn secondary" type="button" id="backBtn">Back</button>' : ""}
-        ${!isLast
-          ? '<button class="btn primary" type="button" id="nextBtn">Next</button>'
-          : '<button class="btn primary" type="button" id="toStartBtn">Back to Start</button>'}
+        <button class="btn ghost" type="button" id="saveNowBtn" title="Save your progress now">💾 Save</button>
+        ${canGoBack ? '<button class="btn secondary" type="button" id="backBtn">← Back</button>' : ""}
+        ${state.currentStep < 4
+          ? '<button class="btn primary" type="button" id="nextBtn">Next →</button>'
+          : '<button class="btn primary" type="button" id="finishBtn">✓ Finish</button>'}
       </div>
     </div>
   `;
 
-  document.getElementById("saveNowBtn")?.addEventListener("click", saveCurrentDraft);
+  document.getElementById("saveNowBtn")?.addEventListener("click", () => {
+    saveCurrentDraft();
+    showAlert("Saved", "Your observation has been saved successfully.");
+  });
 
   document.getElementById("autoSaveToggle")?.addEventListener("change", e => {
     state.autoSaveEnabled = !!e.target.checked;
-    if (state.autoSaveEnabled) { startAutoSaveTimer(); saveCurrentDraft(); }
-    else { stopAutoSaveTimer(); }
-    renderStickyActions();
+    if (state.autoSaveEnabled) { 
+      startAutoSaveTimer(); 
+      saveCurrentDraft();
+      const toggle = document.getElementById("autoSaveToggle");
+      if (toggle) toggle.parentElement.classList.add("auto-save-enabled");
+    }
+    else { 
+      stopAutoSaveTimer();
+      const toggle = document.getElementById("autoSaveToggle");
+      if (toggle) toggle.parentElement.classList.remove("auto-save-enabled");
+    }
   });
 
   document.getElementById("backBtn")?.addEventListener("click", () => {
@@ -473,8 +478,13 @@ function renderStickyActions() {
     tryNavigateToStep(Math.min(STEP_LABELS.length, state.currentStep + 1));
   });
 
-  document.getElementById("toStartBtn")?.addEventListener("click", () => {
-    state.view = "home"; state.currentStep = 1; render();
+  document.getElementById("finishBtn")?.addEventListener("click", () => {
+    saveCurrentDraft();
+    state.view = "observation-support";
+    state.currentStep = 1;
+    resetCurrentSession();
+    render();
+    focusMain();
   });
 }
 
@@ -1836,9 +1846,8 @@ function renderStep4() {
             <p style="white-space:pre-wrap;">${escapeHtml(state.summaryForm.autoSummary || buildAutoSummary() || "-")}</p>
           </div>
           <div style="margin-top:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-            <button class="btn ghost" type="button" id="savePdfBtn">Save to PDF</button>
-            <button class="btn secondary" type="button" id="printBtn">Print</button>
-            <button class="btn primary" type="button" id="saveCloseBtn">Save & Close</button>
+            <button class="btn ghost" type="button" id="savePdfBtn">💾 Save to PDF</button>
+            <button class="btn secondary" type="button" id="printBtn">🖨️ Print</button>
           </div>
         </article>
       </div>
@@ -1855,15 +1864,6 @@ function renderStep4() {
 
   document.getElementById("printBtn")?.addEventListener("click", () => {
     openReviewPrintWindow();
-  });
-
-  document.getElementById("saveCloseBtn")?.addEventListener("click", () => {
-    saveCurrentDraft();
-    state.view = "observation-support";
-    state.currentStep = 1;
-    resetCurrentSession();
-    render();
-    focusMain();
   });
 }
 
