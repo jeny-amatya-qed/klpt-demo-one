@@ -354,7 +354,7 @@ function render() {
 
 function renderSessionMeta() {
   if (state.view === "home" || state.view === "using-klpt" || state.view === "learning-domains-tools" || 
-      state.view === "foundations" || state.loading || state.loadError ||
+      state.view === "foundations" || state.view === "observation-support" || state.loading || state.loadError ||
       (!state.summaryForm.learnerCode && !state.observationStartedAt)) {
     el.sessionMeta.classList.add("hidden");
     el.sessionMeta.innerHTML = "";
@@ -820,10 +820,8 @@ el.main.innerHTML = `
       <div class="new-observation-icon" id="newObservationCircle">
         <img src="./images/start-new-observation.svg" alt="Start a new observation" />
       </div>
-      <div class="new-observation-copy">
-        <p class="eyebrow">New observation</p>
-        <h2>Start a new observation</h2>
-        <p>Tap the icon to begin a fresh session and continue your observation workflow.</p>
+      <div class="new-observation-copy">        
+        <h2>Start a new observation</h2>        
       </div>
     </div>    
 
@@ -1698,15 +1696,24 @@ function buildAutoSummary() {
   if (!rows.length) return "";
   if (state.summaryForm.summaryStyle === "option2") {
     return rows.map(row => {
-      const nextText = row.nextBehaviour
-        ? `What is the likely next step in learning: ${row.nextBehaviour.name}.`
-        : "What is the likely next step in learning: Continue consolidating current behaviour.";
-      return `${row.keyElementName}: What this suggests about current learning and development: ${row.selectedBehaviour.name}. ${nextText}`;
+      const currentDesc = behaviourDescriptionText(row.selectedBehaviour.description);
+      const nextBehaviour = row.nextBehaviour || { name: "Continue consolidating current behaviour", description: "" };
+      const nextDesc = behaviourDescriptionText(nextBehaviour.description);
+      const nextText = `What is the likely next step in learning: ${nextBehaviour.name}${nextDesc ? "\n" + nextDesc : ""}`;
+      return `${row.keyElementName}: What this suggests about current learning and development: ${row.selectedBehaviour.name}${currentDesc ? "\n" + currentDesc : ""}\n${nextText}`;
     }).join("\n\n");
   }
-  const currentLines = rows.map(r => `${r.keyElementName}: ${r.selectedBehaviour.name}`);
-  const nextLines    = rows.map(r => `${r.keyElementName}: ${r.nextBehaviour ? r.nextBehaviour.name : "Continue consolidating current behaviour"}`);
-  return `What this suggests about current learning:\n${currentLines.join("\n")}\n\nWhat is likely to be the next step in learning:\n${nextLines.join("\n")}`;
+
+  const currentLines = rows.map(r => {
+    const selectedDesc = behaviourDescriptionText(r.selectedBehaviour.description);
+    return `• ${r.keyElementName}: ${r.selectedBehaviour.name}${selectedDesc ? "\n" + selectedDesc : ""}`;
+  });
+  const nextLines = rows.map(r => {
+    const nextBehaviour = r.nextBehaviour || { name: "Continue consolidating current behaviour", description: "" };
+    const nextDesc = behaviourDescriptionText(nextBehaviour.description);
+    return `• ${r.keyElementName}: ${nextBehaviour.name}${nextDesc ? "\n" + nextDesc : ""}`;
+  });
+  return `What this suggests about current learning:\n${currentLines.join("\n\n")}\n\nWhat is likely to be the next step in learning:\n${nextLines.join("\n\n")}`;
 }
 
 function getSelectedObservationRows() {
@@ -1744,7 +1751,7 @@ function buildObservedText() {
   const rows = getSelectedObservationRows();
   return rows.map(r => {
     const descText = behaviourDescriptionText(r.selectedBehaviour.description);
-    return `${r.keyElementName}: ${r.selectedBehaviour.name}\n${descText}`;
+    return `• ${r.keyElementName}: ${r.selectedBehaviour.name}${descText ? "\n" + descText : ""}`;
   }).join("\n\n");
 }
 
@@ -1753,7 +1760,7 @@ function buildNextStepText() {
   return rows.map(r => {
     const nextBehaviour = r.nextBehaviour || { name: "Continue consolidating current behaviour", description: "" };
     const descText = behaviourDescriptionText(nextBehaviour.description);
-    return `${r.keyElementName}: ${nextBehaviour.name}${descText ? "\n" + descText : ""}`;
+    return `• ${r.keyElementName}: ${nextBehaviour.name}${descText ? "\n" + descText : ""}`;
   }).join("\n\n");
 }
 
@@ -2479,10 +2486,10 @@ function behaviourDescriptionText(html) {
       const t = String(li.textContent || "").replace(/\s+/g, " ").trim();
       if (t) lines.push(`• ${t}`);
     });
-  } else {
-    const t = String(root.textContent || "").replace(/\s+/g, " ").trim();
-    if (t) lines.push(t);
+    return lines.join("\n");
   }
+  const t = String(root.textContent || "").replace(/\s+/g, " ").trim();
+  if (t) lines.push(t);
   return lines.join(" ");
 }
 
