@@ -27,8 +27,7 @@ const STEP_LABELS = [
   "Choose Learning Areas",
   "Select Observable Behaviours",
   "Fill Summary",
-  "Review",
-  "Save / Print"
+  "Review and Print"
 ];
 
 const STORAGE_KEY = "klpt_demo_v1";
@@ -420,7 +419,7 @@ function renderMain() {
   else if (state.currentStep === 2) renderStep2();
   else if (state.currentStep === 3) renderStep3();
   else if (state.currentStep === 4) renderStep4();
-  else                              renderStep5();
+  else                              renderStep4();
 }
 
 /* ── Sticky Actions ──────────────────────────────────────────────── */
@@ -431,9 +430,10 @@ function renderStickyActions() {
     el.sticky.innerHTML = ""; return;
   }
   const stepTitle = STEP_LABELS[state.currentStep - 1];
-  const leftText  = `${state.currentStep}/5  |  ${stepTitle}`;
+  const totalSteps = STEP_LABELS.length;
+  const leftText  = `${state.currentStep}/${totalSteps}  |  ${stepTitle}`;
   const canGoBack = state.currentStep > 1;
-  const isLast    = state.currentStep === 5;
+  const isLast    = state.currentStep === totalSteps;
 
   el.sticky.innerHTML = `
     <div class="sticky-inner">
@@ -470,7 +470,7 @@ function renderStickyActions() {
   });
 
   document.getElementById("nextBtn")?.addEventListener("click", () => {
-    tryNavigateToStep(Math.min(5, state.currentStep + 1));
+    tryNavigateToStep(Math.min(STEP_LABELS.length, state.currentStep + 1));
   });
 
   document.getElementById("toStartBtn")?.addEventListener("click", () => {
@@ -1464,6 +1464,21 @@ function renderStep3() {
   const nextPreview           = buildNextStepText();
   const practiceSupportPreview = buildPracticeSupportLink();
 
+  // Auto-populate form fields on first arrival to Step 3
+  // (only if not already populated, to preserve user edits)
+  if (!state.summaryForm.domainSummary && domainSummaryPreview) {
+    state.summaryForm.domainSummary = domainSummaryPreview;
+  }
+  if (!state.summaryForm.observedText && observedPreview) {
+    state.summaryForm.observedText = observedPreview;
+  }
+  if (!state.summaryForm.nextStepText && nextPreview) {
+    state.summaryForm.nextStepText = nextPreview;
+  }
+  if (!state.summaryForm.autoSummary && autoSummaryPreview) {
+    state.summaryForm.autoSummary = autoSummaryPreview;
+  }
+
   // Build educator datalist
   const educatorOptions = state.educatorNames.map(n =>
     `<option value="${escapeAttribute(n)}">${escapeHtml(n)}</option>`).join("");
@@ -1781,7 +1796,7 @@ function renderStep4() {
 
   el.main.innerHTML = `
     <section class="panel" aria-labelledby="step4Title">
-      <h2 class="section-title" id="step4Title">Review</h2>
+      <h2 class="section-title" id="step4Title">Review and Print</h2>
       ${renderLearningBreadcrumbs()}
       <div class="review-grid">
         <article class="review-card">
@@ -1820,6 +1835,11 @@ function renderStep4() {
             <p><strong>Generated Summary</strong></p>
             <p style="white-space:pre-wrap;">${escapeHtml(state.summaryForm.autoSummary || buildAutoSummary() || "-")}</p>
           </div>
+          <div style="margin-top:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+            <button class="btn ghost" type="button" id="savePdfBtn">Save to PDF</button>
+            <button class="btn secondary" type="button" id="printBtn">Print</button>
+            <button class="btn primary" type="button" id="saveCloseBtn">Save & Close</button>
+          </div>
         </article>
       </div>
     </section>
@@ -1828,6 +1848,114 @@ function renderStep4() {
   Array.from(el.main.querySelectorAll("[data-jump-step]")).forEach(btn => {
     btn.addEventListener("click", () => tryNavigateToStep(Number(btn.dataset.jumpStep), { force: true }));
   });
+
+  document.getElementById("savePdfBtn")?.addEventListener("click", () => {
+    openReviewPrintWindow();
+  });
+
+  document.getElementById("printBtn")?.addEventListener("click", () => {
+    openReviewPrintWindow();
+  });
+
+  document.getElementById("saveCloseBtn")?.addEventListener("click", () => {
+    saveCurrentDraft();
+    state.view = "observation-support";
+    state.currentStep = 1;
+    resetCurrentSession();
+    render();
+    focusMain();
+  });
+}
+
+function openReviewPrintWindow() {
+  const selectedRecords = getSelectedKeyElementRecords();
+  const behaviourItems  = selectedRecords.map(record => {
+    const behaviourId = state.selectedBehaviourByKeyElementId[record.keyElementId];
+    return { record, behaviour: record.behaviours.find(b => b.id === behaviourId) };
+  });
+  const printHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Learning Observation - KLPT</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }
+          h1, h2, h3 { margin-top: 20px; margin-bottom: 10px; }
+          .section { margin-bottom: 20px; page-break-inside: avoid; }
+          .field { margin-bottom: 12px; }
+          .label { font-weight: bold; color: #555; }
+          .value { margin-top: 4px; white-space: pre-wrap; }
+          .behaviour-item { margin-left: 20px; margin-bottom: 15px; padding-left: 10px; border-left: 3px solid #0077C1; }
+          @media print { body { margin: 10px; } .section { page-break-inside: avoid; } }
+        </style>
+      </head>
+      <body>
+        <h1>Learning Observation Summary</h1>
+        <div class="section">
+          <h2>Session Information</h2>
+          <div class="field">
+            <span class="label">Learner Code:</span>
+            <div class="value">${escapeHtml(state.summaryForm.learnerCode || '-')}</div>
+          </div>
+          <div class="field">
+            <span class="label">Child Name:</span>
+            <div class="value">${escapeHtml(state.summaryForm.childName || '-')}</div>
+          </div>
+          <div class="field">
+            <span class="label">Observer Name:</span>
+            <div class="value">${escapeHtml(state.summaryForm.observerName || '-')}</div>
+          </div>
+          <div class="field">
+            <span class="label">Date:</span>
+            <div class="value">${escapeHtml(state.summaryForm.observationDate || '-')}</div>
+          </div>
+        </div>
+        <div class="section">
+          <h2>Learning Areas & Behaviours</h2>
+          ${behaviourItems.map(({ record, behaviour }) => `
+            <div class="behaviour-item">
+              <div style="font-weight: bold;">${escapeHtml(record.domainName)}${record.subdomainName ? ` | ${escapeHtml(record.subdomainName)}` : ""}${record.parentElementName ? ` | ${escapeHtml(record.parentElementName)}` : ""}</div>
+              <div>${escapeHtml(record.keyElementName)}</div>
+              <div style="color: #0077C1; margin-top: 4px;">${escapeHtml(behaviour ? behaviour.name : 'Not selected')}</div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="section">
+          <h2>Learning Domain Summary</h2>
+          <div class="value">${escapeHtml(state.summaryForm.domainSummary || buildDomainSummaryText() || '-')}</div>
+        </div>
+        <div class="section">
+          <h2>Context / Evidence</h2>
+          <div class="value">${escapeHtml(state.summaryForm.contextEvidence || '-')}</div>
+        </div>
+        <div class="section">
+          <h2>What You Observed</h2>
+          <div class="value">${escapeHtml(state.summaryForm.observedText || buildObservedText() || '-')}</div>
+        </div>
+        <div class="section">
+          <h2>Likely Next Step</h2>
+          <div class="value">${escapeHtml(state.summaryForm.nextStepText || buildNextStepText() || '-')}</div>
+        </div>
+        <div class="section">
+          <h2>Professional Reflection</h2>
+          <div class="value">${escapeHtml(state.summaryForm.professionalReflection || '-')}</div>
+        </div>
+        <div class="section">
+          <h2>How You Can Support This Learning</h2>
+          <div class="value">${escapeHtml(state.summaryForm.supportLearning || '-')}</div>
+        </div>
+        <div class="section">
+          <h2>Generated Learning Progression Statement</h2>
+          <div class="value">${escapeHtml(state.summaryForm.autoSummary || buildAutoSummary() || '-')}</div>
+        </div>
+      </body>
+    </html>
+  `;
+  const printWin = window.open('', '', 'width=800,height=600');
+  printWin.document.write(printHtml);
+  printWin.document.close();
+  printWin.print();
 }
 
 function renderReviewField(title, value) {
@@ -2383,7 +2511,7 @@ function getMaxUnlockedStep() {
   if (state.selectedKeyElementIds.length > 0) max = 2;
   const count = Object.keys(state.selectedBehaviourByKeyElementId)
     .filter(k => state.selectedKeyElementIds.includes(k)).length;
-  if (count === state.selectedKeyElementIds.length && state.selectedKeyElementIds.length > 0) max = 5;
+  if (count === state.selectedKeyElementIds.length && state.selectedKeyElementIds.length > 0) max = STEP_LABELS.length;
   return max;
 }
 
